@@ -1,0 +1,12 @@
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
+
+.tracker-close-avg {
+    fill: none;
+    stroke: blue;
+    stroke-width: 1;
+    stroke-dasharray: 3, 3;
+}
