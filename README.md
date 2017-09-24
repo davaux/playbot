@@ -1,0 +1,2 @@
+# playbot
+Play! Scala bot.
