@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 case class ChartData(date: Long, high: Double, low: Double, open: Double, close: Double, volume: Double, quoteVolume: Double, weightedAverage: Double)
 
-class BotChart(exchange: String, pair: String, period: Int) {
+class BotChart(exchange: String, pair: String, period: Int, backtest: Boolean = true) {
 	val startTime = 1493640000 // 2017-05-01 12:00:00
 	val endTime = 1493726400 // 2017-05-02 12:00:00
 	//val startTime = 1495195200
@@ -17,16 +17,30 @@ class BotChart(exchange: String, pair: String, period: Int) {
 	implicit val chartDataReads = Json.reads[ChartData]
 
 	def data(ws: WSClient): Future[List[ChartData]] = {
-		val futureResult: Future[JsResult[List[ChartData]]] = dataPoloniex(ws)
-		futureResult.map {
-			chartDataResult =>
-				chartDataResult match {
-					case s: JsSuccess[List[ChartData]] => s.get
-					case e: JsError => {
-						Logger.error(JsError.toJson(e).toString())
-						List.empty[ChartData]
+		if(exchange == "poloniex") {
+			val futureResult: Future[JsResult[List[ChartData]]] = dataPoloniex(ws)
+			futureResult.map {
+				chartDataResult =>
+					chartDataResult match {
+						case s: JsSuccess[List[ChartData]] => s.get
+						case e: JsError => {
+							Logger.error(JsError.toJson(e).toString())
+							List.empty[ChartData]
+						}
 					}
-				}
+			}
+		} else {
+			val futureResult: Future[JsResult[List[ChartData]]] = dataBittrex(ws)
+			futureResult.map {
+				chartDataResult =>
+					chartDataResult match {
+						case s: JsSuccess[List[ChartData]] => s.get
+						case e: JsError => {
+							Logger.error(JsError.toJson(e).toString())
+							List.empty[ChartData]
+						}
+					}
+			}
 		}
 	}
 
@@ -48,7 +62,22 @@ class BotChart(exchange: String, pair: String, period: Int) {
 		}
 	}
 
-	def dataBittrex(ws: WSClient) = {
+	// https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-STEEM&tickInterval=thirtyMin&_=1493640000
+	def dataBittrex(ws: WSClient): Future[JsResult[List[ChartData]]] = {
+		val request: WSRequest = ws.url("https://bittrex.com/Api/v2.0/pub/market/GetTicks")
+		val complexRequest: WSRequest =
+			request.addHttpHeaders("Accept" -> "application/json")
+			.addQueryStringParameters("marketName" -> "BTC-STEEM")
+			.addQueryStringParameters("tickInterval" -> "thirtyMin")
+			.addQueryStringParameters("_" -> "1506254400")
+			.withRequestTimeout(10000.millis)
 
+
+		complexRequest.get().map {
+			response =>
+				Logger.info(s"response: ${(response.json \ "result")}")
+				//println(s"reponse.json ${(response.json \ pair)}")
+				(response.json \ "result").validate[List[ChartData]]
+		}
 	}
 }
