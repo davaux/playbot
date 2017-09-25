@@ -51,14 +51,14 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
   def trade(pair: String) = Action.async { implicit request: Request[AnyContent] =>
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val botChart = new BotChart("poloniex", pair, periods(3))
+    val botChart = new BotChart("poloniex", pair, periods(0))
     val strategy = new BotStrategy();
     val historicalData = botChart.data(ws);
     var dataPoints: ListBuffer[DataPoint] = new ListBuffer[DataPoint]()
 
-    historicalData.map(value => 
+    historicalData.map(listOfChartData => 
       {
-        for(candleStick <- value.get) {
+        for(candleStick <- listOfChartData) {
           val lastPairPrice = candleStick.weightedAverage
           val dataDate = format.format(candleStick.date * 1000L)
           strategy.tick(candleStick)
