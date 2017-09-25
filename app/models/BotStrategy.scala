@@ -8,8 +8,6 @@ class BotStrategy() {
 	val trades: ListBuffer[BotTrade] = ListBuffer.empty[BotTrade]
 	var currentPrice = 0.0
 	val numSimulTrades = 1
-	var totalGain = 0.0
-	var totalLoss = 0.0
 
 	val indicators = new BotIndicators()
 
@@ -17,32 +15,40 @@ class BotStrategy() {
 		currentPrice = candleStick.weightedAverage
 		prices += currentPrice
 
-		Logger.info(s"Price: ${candleStick.weightedAverage}\tMoving Average: ${indicators.movingAverage(prices.toList, 15)}")
+		Logger.info(s"Price: ${currentPrice}\tMoving Average: ${indicators.movingAverage(prices.toList, 15)}")
+
 		evaluatePositions()
 
-		showPositions()
+		updateOpenTrades()
 
-		totalGain += gain()
-		totalLoss += loss()
+		showPositions()
 	}
 
 	def evaluatePositions(): Unit = {
 		var openTrades = ListBuffer.empty[BotTrade]
+
+		val movingAverage = indicators.movingAverage(prices.toList, 15)
 
 		for(trade <- trades) {
 			if(trade.status == "OPEN") openTrades += trade
 		}
 
 		if(openTrades.size < numSimulTrades) {
-			if(currentPrice < indicators.movingAverage(prices.toList, 15)) {
-				trades += new BotTrade(currentPrice)
+			if(currentPrice < movingAverage) {
+				trades += new BotTrade(currentPrice, 0.0001)
 			}
 		}
 
 		for(trade <- openTrades) {
-			if(currentPrice > indicators.movingAverage(prices.toList, 15)) {
+			if(currentPrice > movingAverage) {
 				trade.close(currentPrice)
 			}
+		}
+	}
+
+	def updateOpenTrades(): Unit = {
+		for(trade <- trades) {
+			if(trade.status == "OPEN") trade.tick(currentPrice)
 		}
 	}
 
@@ -57,7 +63,7 @@ class BotStrategy() {
 		for(trade <- trades) {
 			total += trade.totalGain
 		}
-		Logger.info(s"Gain $total")
+		//Logger.info(s"Gain $total")
 		total
 	}
 
@@ -67,7 +73,7 @@ class BotStrategy() {
 		for(trade <- trades) {
 			total += trade.totalLoss
 		}
-		Logger.info(s"Loss $total")
+		//Logger.info(s"Loss $total")
 		total
 	}
 }
