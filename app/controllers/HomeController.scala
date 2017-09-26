@@ -41,7 +41,12 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
   val period = periods(0)
   val lengthOfMA = 10;
   var currentMovingAverage: Double = 0;
-  implicit val tickerReads = Json.reads[Ticker]
+  implicit val tickerReads = Json.reads[Ticker]    
+  var candleSticks: ListBuffer[BotCandleStick] = ListBuffer.empty[BotCandleStick]
+  var cancellable: akka.actor.Cancellable = null
+  var dataPointsLive: ListBuffer[DataPoint] = ListBuffer.empty[DataPoint]
+  var strategy: BotStrategy = null
+
   /**
    * Create an Action to render an HTML page.
    *
@@ -56,18 +61,18 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
   def backtest(pair: String) = Action.async { implicit request: Request[AnyContent] =>
     
     val botChart = new BotChart("poloniex", pair, period)
-    val strategy = new BotStrategy();
+    val strategy = new BotBacktestStrategy();
     val historicalData = botChart.data(ws);
     var dataPoints: ListBuffer[DataPoint] = new ListBuffer[DataPoint]()
 
     historicalData.map(listOfChartData => 
       {
         for(candleStick <- listOfChartData) {
-          val lastPairPrice = candleStick.weightedAverage
-          val dataDate = format.format(candleStick.date * 1000L)
           strategy.tick(candleStick)
           //Logger.info("" + candleStick)
 
+          val lastPairPrice = candleStick.weightedAverage
+          val dataDate = format.format(candleStick.date * 1000L)
           dataPoints += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
         }
         val xLabels = dataPoints.map(_.date);
@@ -83,74 +88,51 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
         Logger.info(s"Total Loss : ${strategy.loss()}")
         Ok(views.html.trade(dataPoints.toList))
       }
-
     )
   }
 
   def live(pair: String) = Action { implicit request: Request[AnyContent] =>
-    /*import scala.concurrent.ExecutionContext.Implicits.global
     
-    val botChart = new BotChart("poloniex", pair, periods(0), false)
-    val strategy = new BotStrategy();
-    val historicalData = botChart.data(ws);
-    var dataPoints: ListBuffer[DataPoint] = new ListBuffer[DataPoint]()
+    val botChart = new BotChart("poloniex", pair, period)
+    var prices: ListBuffer[Double] = ListBuffer.empty[Double]
+    var developingCandleStick = new BotCandleStick();
+    strategy = new BotStrategy();
 
-    historicalData.map(listOfChartData => 
-      {
-        for(candleStick <- listOfChartData) {
-          val lastPairPrice = candleStick.weightedAverage
-          val dataDate = format.format(candleStick.date * 1000L)
-          strategy.tick(candleStick)
-          //Logger.info("" + candleStick)
-
-          dataPoints += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
-        }
-        val xLabels = dataPoints.map(_.date);
-        val xSeries = for (i <- List.range(1, xLabels.size + 1)) yield i.toDouble
-        //println(xSeries)
-        val ySeries = dataPoints.map(_.price.toDouble).toList
-        //println(ySeries)
-        val leastSquaresCoeff = leastSquares(xSeries, ySeries);
-        //println(leastSquaresCoeff(0))
-        //println(leastSquaresCoeff(1))
-        //println(leastSquaresCoeff(2))
-        Logger.info(s"Total Gain : ${strategy.gain()}")
-        Logger.info(s"Total Loss : ${strategy.loss()}")
-        Ok(views.html.trade(dataPoints.toList))
-      }
-
-    )*/
-    var prices: ListBuffer[Double] = new ListBuffer[Double]()
-    val request: WSRequest = ws.url("https://poloniex.com/public?command=returnTicker")
-
-    var dataPoints: ListBuffer[DataPoint] = new ListBuffer[DataPoint]()
-    actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = period.seconds) {
-      val complexRequest: WSRequest =
-        request.addHttpHeaders("Accept" -> "application/json")
-          .addQueryStringParameters("market" -> "BTC-STEEM")
-          .withRequestTimeout(10000.millis)
-      val futureResult: Future[JsResult[Ticker]] = complexRequest.get().map {
-        response =>
-          //println(s"reponse.json ${(response.json \ pair)}")
-          (response.json \ pair).validate[Ticker]
-      }
+    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 30.seconds) {
+      val futureResult: Future[Option[Double]] = botChart.getCurrentPrice(ws)
       
       futureResult.onComplete {
         case Success(value) => {
-          val lastPairPrice = value.get.last
+          val lastPairPrice = value.get
+          developingCandleStick.tick(lastPairPrice)
 
-          if(prices.length > 0) {
+          if(developingCandleStick.isClosed()) {
+            candleSticks += developingCandleStick
+            strategy.tick(developingCandleStick)
+            developingCandleStick = new BotCandleStick()
+          }
+
+          /*if(prices.length > 0) {
             currentMovingAverage = prices.sum / prices.length
           }
           println(format.format(Calendar.getInstance().getTime()) + s" period...$period, $pair, $lastPairPrice, Moving Average $currentMovingAverage")
 
           prices += lastPairPrice
-          prices = prices.slice(prices.size - lengthOfMA, prices.size)
+          prices = prices.slice(prices.size - lengthOfMA, prices.size)*/
+          val dataDate = format.format(Calendar.getInstance().getTime())
+          dataPointsLive += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
         }
         case Failure(e) => e.printStackTrace
       }
     }
-    Ok(views.html.trade(dataPoints.toList))
+    Ok(views.html.index())
+  }
+
+  def stopLive() = Action { implicit request: Request[AnyContent] =>
+    cancellable.cancel()
+    Logger.info(s"Total Gain : ${strategy.gain()}")
+    Logger.info(s"Total Loss : ${strategy.loss()}")
+    Ok(views.html.trade(dataPointsLive.toList))
   }
 
 

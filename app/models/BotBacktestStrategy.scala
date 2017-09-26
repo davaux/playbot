@@ -3,18 +3,15 @@ package models;
 import play.api.Logger
 import scala.collection.mutable.ListBuffer
 
-class BotStrategy() {
+class BotBacktestStrategy() {
 	var prices: ListBuffer[Double] = ListBuffer.empty[Double]
-	// Needed for Momentum Indicator
-	var closes: ListBuffer[Double] = ListBuffer.empty[Double]
 	val trades: ListBuffer[BotTrade] = ListBuffer.empty[BotTrade]
 	var currentPrice = 0.0
-	var currentClose = 0.0
 	val numSimulTrades = 1
 	val indicators = new BotIndicators()
 
-	def tick(candleStick: BotCandleStick): Unit = {
-		currentPrice = candleStick.priceAverage
+	def tick(candleStick: ChartData): Unit = {
+		currentPrice = candleStick.weightedAverage
 		prices += currentPrice
 
 		// currentClose = candlestick.close

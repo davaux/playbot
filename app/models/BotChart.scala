@@ -80,4 +80,24 @@ class BotChart(exchange: String, pair: String, period: Int, backtest: Boolean = 
 				(response.json \ "result").validate[List[ChartData]]
 		}
 	}
+
+	def getCurrentPrice(ws: WSClient): Future[Option[Double]] = {
+		val request: WSRequest = ws.url("https://poloniex.com/public?command=returnTicker")
+		val complexRequest: WSRequest =
+		request.addHttpHeaders("Accept" -> "application/json")
+		  /*.addQueryStringParameters("market" -> pair)*/
+		  .withRequestTimeout(10000.millis)
+		complexRequest.get().map {
+			response =>
+				//println(s"reponse.json ${(response.json \ pair \ "last")}")
+				val result: JsResult[String] = (response.json \ pair \ "last").validate[String]
+				result match {
+					case s: JsSuccess[String] => Some(s.get.toDouble)
+					case e: JsError => {
+						Logger.error(JsError.toJson(e).toString())
+						None
+					}
+				}
+		}
+	}
 }
