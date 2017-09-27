@@ -42,7 +42,9 @@ class BotBacktestStrategy() {
 		}
 
 		for(trade <- openTrades) {
+			Logger.debug(s"current price: $currentPrice moving average: $movingAverage")
 			if(currentPrice > movingAverage) {
+				Logger.debug(s"current price: $currentPrice moving average: $movingAverage")
 				trade.close(currentPrice)
 			}
 		}

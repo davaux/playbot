@@ -4,15 +4,15 @@ import play.api.Logger
 import java.util.Calendar
 import java.text.SimpleDateFormat
 
-class BotCandleStick(period: Int = 300) {
+class BotCandleStick(period: Int = 300, var open: Double = 0.0, var close: Double = 0.0, var high: Double = 0.0, var low: Double = 0.0, var priceAverage: Double = 0.0) {
 	var current: Double = 0.0
-	var open: Double = 0.0
-	var close: Double = 0.0
+	//var open: Double = open
+	//var close: Double = close
 	private var closed: Boolean = false
-	var high: Double = 0.0
-	var low: Double = 0.0
+	//var high: Double = high
+	//var low: Double = low
 	var startTime = Calendar.getInstance()
-	var priceAverage: Double = 0.0
+	//var priceAverage: Double = priceAverage
 
 	def tick(price: Double): Unit = {
 		current = price

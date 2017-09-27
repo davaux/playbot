@@ -38,7 +38,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
   val periods = Array(300, 900, 1800, 7200, 14400, 86400)
   val format = new SimpleDateFormat("yyy-MM-dd HH:mm:ss")
-  val period = periods(0)
+  val period = periods(3)
   val lengthOfMA = 10;
   var currentMovingAverage: Double = 0;
   implicit val tickerReads = Json.reads[Ticker]    
@@ -61,18 +61,20 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
   def backtest(pair: String) = Action.async { implicit request: Request[AnyContent] =>
     
     val botChart = new BotChart("poloniex", pair, period)
-    val strategy = new BotBacktestStrategy();
+    //val strategy = new BotBacktestStrate();
+    val strategy = new BotStrategy();
     val historicalData = botChart.data(ws);
     var dataPoints: ListBuffer[DataPoint] = new ListBuffer[DataPoint]()
 
     historicalData.map(listOfChartData => 
       {
-        for(candleStick <- listOfChartData) {
+        for(chartData <- listOfChartData) {
+          val candleStick = new BotCandleStick(period, chartData.open, chartData.close, chartData.high, chartData.low, chartData.weightedAverage)
           strategy.tick(candleStick)
-          //Logger.info("" + candleStick)
+          //Logger.info("" + chartData)
 
-          val lastPairPrice = candleStick.weightedAverage
-          val dataDate = format.format(candleStick.date * 1000L)
+          val lastPairPrice = chartData.weightedAverage
+          val dataDate = format.format(chartData.date * 1000L)
           dataPoints += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
         }
         val xLabels = dataPoints.map(_.date);

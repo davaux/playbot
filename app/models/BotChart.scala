@@ -10,10 +10,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 case class ChartData(date: Long, high: Double, low: Double, open: Double, close: Double, volume: Double, quoteVolume: Double, weightedAverage: Double)
 
 class BotChart(exchange: String, pair: String, period: Int, backtest: Boolean = true) {
-	val startTime = 1493640000 // 2017-05-01 12:00:00
-	val endTime = 1493726400 // 2017-05-02 12:00:00
-	//val startTime = 1495195200
-	//val endTime = 1495540800
+	//val startTime = 1493640000 // 2017-05-01 12:00:00
+	//val endTime = 1493726400 // 2017-05-02 12:00:00
+	val startTime = 1495195200
+	val endTime = 1495540800
 	implicit val chartDataReads = Json.reads[ChartData]
 
 	def data(ws: WSClient): Future[List[ChartData]] = {
