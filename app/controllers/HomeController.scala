@@ -60,7 +60,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
   def backtest(pair: String) = Action.async { implicit request: Request[AnyContent] =>
     
-    val botChart = new BotChart("poloniex", pair, period)
+    val botChart = new BotChart("bittrex", pair, period)
     //val strategy = new BotBacktestStrate();
     val strategy = new BotStrategy();
     val historicalData = botChart.data(ws);
@@ -75,6 +75,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
           val lastPairPrice = chartData.weightedAverage
           val dataDate = format.format(chartData.date * 1000L)
+          Logger.debug(s"${chartData.date} lastPairPrice $lastPairPrice")
           dataPoints += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
         }
         val xLabels = dataPoints.map(_.date);
