@@ -2,12 +2,12 @@ package models
 
 import play.api.Logger
 
-class BotTrade(currentPrice: Double, stopLossAmout: Double) {
+class BotTrade(entryPrice: Double, stopLossAmout: Double) {
+	Logger.info("Trade opened")
 	var status = "OPEN";
 	var exitPrice = 0.0
-	var entryPrice = currentPrice
 	//val stopLoss = currentPrice - stopLossAmout
-	val stopLoss = currentPrice * (1 - stopLossAmout)
+	val stopLoss = entryPrice * (1 - stopLossAmout)
 
 	def close(price: Double) = {
 		status = "CLOSED"
@@ -31,7 +31,10 @@ class BotTrade(currentPrice: Double, stopLossAmout: Double) {
 	}
 
 	def tick(currentPrice: Double) = {
-		if(currentPrice < stopLoss) {
+		if(currentPrice <= stopLoss) {
+			close(currentPrice)
+		}
+		if(currentPrice >= entryPrice * (1 + 0.1)) {
 			close(currentPrice)
 		}
 	}

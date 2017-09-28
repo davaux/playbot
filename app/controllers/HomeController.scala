@@ -98,10 +98,10 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
     
     val botChart = new BotChart("poloniex", pair, period)
     var prices: ListBuffer[Double] = ListBuffer.empty[Double]
-    var developingCandleStick = new BotCandleStick();
+    var developingCandleStick = new BotCandleStick(60);
     strategy = new BotStrategy();
 
-    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 30.seconds) {
+    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 10.seconds) {
       val futureResult: Future[Option[Double]] = botChart.getCurrentPrice(ws)
       
       futureResult.onComplete {
@@ -114,7 +114,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
             strategy.tick(developingCandleStick)
             val dataDate = format.format(Calendar.getInstance().getTime())
             dataPointsLive += new DataPoint(dataDate, developingCandleStick.priceAverage.toString, "", "", "")
-            developingCandleStick = new BotCandleStick()
+            developingCandleStick = new BotCandleStick(60)
           }
 
           /*if(prices.length > 0) {
