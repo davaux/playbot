@@ -40,12 +40,15 @@ class BotStrategy() {
 
 		if(openTrades.size < numSimulTrades) {
 			if(currentPrice < movingAverage) {
-				trades += new BotTrade(currentPrice, 0.0001)
+				trades += new BotTrade(currentPrice, 0.07) // 7%
 			}
 		}
 
 		for(trade <- openTrades) {
-			if(currentPrice > movingAverage) {
+			/*if(currentPrice > movingAverage) {
+				trade.close(currentPrice)
+			}*/
+			if(currentPrice > currentPrice * (1 + 0.1)) { // 10%
 				trade.close(currentPrice)
 			}
 		}

@@ -6,7 +6,8 @@ class BotTrade(currentPrice: Double, stopLossAmout: Double) {
 	var status = "OPEN";
 	var exitPrice = 0.0
 	var entryPrice = currentPrice
-	val stopLoss = currentPrice - stopLossAmout
+	//val stopLoss = currentPrice - stopLossAmout
+	val stopLoss = currentPrice * (1 - stopLossAmout)
 
 	def close(price: Double) = {
 		status = "CLOSED"

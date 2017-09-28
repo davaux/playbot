@@ -112,6 +112,8 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
           if(developingCandleStick.isClosed()) {
             candleSticks += developingCandleStick
             strategy.tick(developingCandleStick)
+            val dataDate = format.format(Calendar.getInstance().getTime())
+            dataPointsLive += new DataPoint(dataDate, developingCandleStick.priceAverage.toString, "", "", "")
             developingCandleStick = new BotCandleStick()
           }
 
@@ -122,8 +124,6 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
           prices += lastPairPrice
           prices = prices.slice(prices.size - lengthOfMA, prices.size)*/
-          val dataDate = format.format(Calendar.getInstance().getTime())
-          dataPointsLive += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
         }
         case Failure(e) => e.printStackTrace
       }
