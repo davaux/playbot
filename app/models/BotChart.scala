@@ -16,8 +16,8 @@ case class ChartDataBittrex(O: Double, H: Double, L: Double, C: Double, V: Doubl
 class BotChart(exchange: String, pair: String, period: Int, backtest: Boolean = true) {
 	//val startTime = 1493640000 // 2017-05-01 12:00:00
 	//val endTime = 1493726400 // 2017-05-02 12:00:00
-	val startTime = 1495195200
-	val endTime = 1495540800
+	val startTime = 1506600000
+	val endTime = 1506686400
 	implicit val chartDataReads = Json.reads[ChartData]
 	implicit val chartDataBittrexReads = Json.reads[ChartDataBittrex]
 	val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")

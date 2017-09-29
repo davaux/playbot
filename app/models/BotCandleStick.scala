@@ -22,7 +22,11 @@ class BotCandleStick(period: Int = 300, var open: Double = 0.0, var close: Doubl
 		val startTimePlusPeriod = Calendar.getInstance
 		startTimePlusPeriod.setTime(startTime.getTime)
 		startTimePlusPeriod.add(Calendar.SECOND, period)
+		startTimePlusPeriod.set(Calendar.MILLISECOND, 0);
+		startTimePlusPeriod.set(Calendar.SECOND, 0);
 		val now  = Calendar.getInstance
+		now.set(Calendar.MILLISECOND, 0);
+		now.set(Calendar.SECOND, 0);
 		
 		if(now.after(startTimePlusPeriod) || now.equals(startTimePlusPeriod)) {
 			closed = true;

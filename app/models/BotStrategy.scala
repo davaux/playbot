@@ -45,7 +45,7 @@ class BotStrategy() {
 		}
 
 		for(trade <- openTrades) {
-			if(currentPrice > movingAverage) {
+			if(currentPrice > movingAverage/* && currentPrice >= trade.currentPrice * (1 + 0.1)*/) {
 				trade.close(currentPrice)
 			}
 		}

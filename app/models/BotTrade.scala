@@ -6,8 +6,11 @@ class BotTrade(entryPrice: Double, stopLossAmout: Double) {
 	Logger.info("Trade opened")
 	var status = "OPEN";
 	var exitPrice = 0.0
+	val currentPrice = entryPrice
 	//val stopLoss = currentPrice - stopLossAmout
 	val stopLoss = entryPrice * (1 - stopLossAmout)
+
+	// https://bittrex.com/api/v1.1/market/buylimit?apikey=API_KEY&market=BTC-LTC&quantity=1.2&rate=1.3
 
 	def close(price: Double) = {
 		status = "CLOSED"
@@ -32,9 +35,6 @@ class BotTrade(entryPrice: Double, stopLossAmout: Double) {
 
 	def tick(currentPrice: Double) = {
 		if(currentPrice <= stopLoss) {
-			close(currentPrice)
-		}
-		if(currentPrice >= entryPrice * (1 + 0.1)) {
 			close(currentPrice)
 		}
 	}

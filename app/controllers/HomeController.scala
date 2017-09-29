@@ -60,7 +60,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
   def backtest(pair: String) = Action.async { implicit request: Request[AnyContent] =>
     
-    val botChart = new BotChart("bittrex", pair, period)
+    val botChart = new BotChart("poloniex", pair, period)
     //val strategy = new BotBacktestStrate();
     val strategy = new BotStrategy();
     val historicalData = botChart.data(ws);
@@ -75,7 +75,6 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
           val lastPairPrice = chartData.weightedAverage
           val dataDate = format.format(chartData.date * 1000L)
-          Logger.debug(s"${chartData.date} lastPairPrice $lastPairPrice")
           dataPoints += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
         }
         val xLabels = dataPoints.map(_.date);
@@ -98,10 +97,10 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
     
     val botChart = new BotChart("poloniex", pair, period)
     var prices: ListBuffer[Double] = ListBuffer.empty[Double]
-    var developingCandleStick = new BotCandleStick(60);
+    var developingCandleStick = new BotCandleStick();
     strategy = new BotStrategy();
 
-    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 10.seconds) {
+    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 30.seconds) {
       val futureResult: Future[Option[Double]] = botChart.getCurrentPrice(ws)
       
       futureResult.onComplete {
@@ -114,7 +113,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
             strategy.tick(developingCandleStick)
             val dataDate = format.format(Calendar.getInstance().getTime())
             dataPointsLive += new DataPoint(dataDate, developingCandleStick.priceAverage.toString, "", "", "")
-            developingCandleStick = new BotCandleStick(60)
+            developingCandleStick = new BotCandleStick()
           }
 
           /*if(prices.length > 0) {
