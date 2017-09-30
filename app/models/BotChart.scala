@@ -92,7 +92,7 @@ class BotChart(exchange: String, pair: String, period: Int, backtest: Boolean = 
 
 		complexRequest.get().map {
 			response =>
-				Logger.info(s"response: ${(response.json \ "result")}")
+				//Logger.info(s"response: ${(response.json \ "result")}")
 				//println(s"reponse.json ${(response.json \ pair)}")
 				(response.json \ "result").validate[List[ChartDataBittrex]]
 		}

@@ -4,9 +4,16 @@
   stroke-width: 2px;
 }
 
-.tracker-close-avg {
+.trackerA-close-avg {
     fill: none;
     stroke: blue;
+    stroke-width: 1;
+    stroke-dasharray: 3, 3;
+}
+
+.trackerB-close-avg {
+    fill: none;
+    stroke: green;
     stroke-width: 1;
     stroke-dasharray: 3, 3;
 }

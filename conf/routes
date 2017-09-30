@@ -6,7 +6,7 @@
 # An example controller showing a sample home page
 GET     /                           controllers.HomeController.index
 
-GET 	/backtest					controllers.HomeController.backtest(pair: String ?= "BTC_STEEM")
+GET 	/backtest					controllers.HomeController.backtest(pair: String ?= "BTC_STEEM", period: Int ?= 300)
 
 GET 	/live						controllers.HomeController.live(pair: String ?= "BTC_STEEM")
 

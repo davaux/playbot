@@ -2,62 +2,73 @@ package models
 
 import play.api.Logger
 
-class BotTrade(entryPrice: Double, stopLossAmout: Double) {
-	Logger.info("Trade opened")
+class BotTrade(price: Double, quantity: Double, stopLossAmout: Double, val typeOfTrade: String) {
 	var status = "OPEN";
+	Logger.info(s"Trade opened")
 	var exitPrice = 0.0
-	val currentPrice = entryPrice
+	val entryPrice = price * quantity
 	//val stopLoss = currentPrice - stopLossAmout
-	val stopLoss = entryPrice * (1 - stopLossAmout)
+	Logger.info(s"quantity $quantity")
 
 	// https://bittrex.com/api/v1.1/market/buylimit?apikey=API_KEY&market=BTC-LTC&quantity=1.2&rate=1.3
 
 	def close(price: Double) = {
 		status = "CLOSED"
-		exitPrice = price
-		Logger.info("Trade closed")
+		exitPrice = price * quantity
+		Logger.info(s"Trade closed")
 	}
 
 	def showTrade() = {
-		var tradeStatus = s"Entry Price: $entryPrice Status: $status Exit Price: $exitPrice"
+		var tradeStatus = s"$typeOfTrade Trade Entry Price: $entryPrice Status: $status Exit Price: $exitPrice"
 
 		if(status == "CLOSED") {
 			tradeStatus += " Profit: "
-			if(exitPrice > entryPrice) {
-				tradeStatus += "\u001b[92m"
-			} else {
-				tradeStatus += "\u001b[91m"
+			if(typeOfTrade == "Long") {
+				if(exitPrice >= entryPrice) {
+					tradeStatus += "\u001b[92m"
+				} else {
+					tradeStatus += "\u001b[91m"
+				}
+				tradeStatus += (exitPrice - entryPrice) + "\u001b[0m"
+			} else if(typeOfTrade == "Short") {
+				if(exitPrice <= entryPrice) {
+					tradeStatus += "\u001b[92m"
+				} else {
+					tradeStatus += "\u001b[91m"
+				}
+				tradeStatus += (entryPrice - exitPrice) + "\u001b[0m"
 			}
-			tradeStatus += (exitPrice - entryPrice) + "\u001b[0m"
 		}
 		Logger.info(tradeStatus)
 	}
 
 	def tick(currentPrice: Double) = {
-		if(currentPrice <= stopLoss) {
-			close(currentPrice)
+		if(typeOfTrade == "Long") {
+			val stopLoss = price * (1 - stopLossAmout)
+			if(currentPrice <= stopLoss) {
+				close(currentPrice)
+			}
+		} else if(typeOfTrade == "Short") {
+			val stopLoss = price * (1 + stopLossAmout)
+			if(currentPrice >= stopLoss) {
+				close(currentPrice)
+			}
 		}
 	}
 
-	def totalGain(): Double = {
-		var total = 0.0
+	def profit(): Double = {
+		var profit = 0.0
 		if(status == "CLOSED") {
-			if(exitPrice > entryPrice) {
-				total += (exitPrice - entryPrice)
+			if(typeOfTrade == "Long") {
+				profit = exitPrice - entryPrice
+			} else if (typeOfTrade == "Short") {
+				profit = entryPrice - exitPrice
 			}
 		}
-		total
+		profit
 	}
 
-
-
-	def totalLoss(): Double = {
-		var total = 0.0
-		if(status == "CLOSED") {
-			if(exitPrice <= entryPrice) {
-				total += (exitPrice - entryPrice)
-			}
-		}
-		total
+	def getQuantity(): Double = {
+		quantity
 	}
 }

@@ -102,15 +102,15 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
 	.attr("stroke-width", 1);
 
 	var yValue = 'close';
-	var movingAverage = 15
-	var tracker = d3.line();
-    tracker.x(function (d) {
+	var movingAverageA = 10
+	var trackerA = d3.line();
+    trackerA.x(function (d) {
         return x(d.date);
     });
 
-    tracker.y(function (d, i) {
+    trackerA.y(function (d, i) {
 
-        var count = Math.min(movingAverage, i + 1),
+        var count = Math.min(movingAverageA, i + 1),
                 first = i + 1 - count;
 
         var sum = 0;
@@ -125,9 +125,37 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
     svg.append('g')
 	    .append("path")
 	    .data([data])
-	    .attr("class", "tracker")
-	    .classed('tracker-close-avg', true)
-	    .attr("d", tracker);
+	    .attr("class", "trackerA")
+	    .classed('trackerA-close-avg', true)
+	    .attr("d", trackerA);
+
+
+  var movingAverageB = 40
+  var trackerB = d3.line();
+    trackerB.x(function (d) {
+        return x(d.date);
+    });
+
+    trackerB.y(function (d, i) {
+
+        var count = Math.min(movingAverageB, i + 1),
+                first = i + 1 - count;
+
+        var sum = 0;
+        for (var index = first; index <= i; ++index) {
+            sum += data[index][yValue];
+        }
+        var mean = sum / count;
+
+        return y(mean);
+    });
+
+    svg.append('g')
+      .append("path")
+      .data([data])
+      .attr("class", "trackerB")
+      .classed('trackerB-close-avg', true)
+      .attr("d", trackerB);
 
 	const focus = svg.append('g')
       .attr('class', 'focus')
