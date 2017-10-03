@@ -1,3 +1,22 @@
+button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+.buys {
+  fill: yellow;
+}
+
+.sells {
+  fill: red;
+}
+
+.overlay {
+    fill: none;
+    pointer-events: all;
+}
+
 .line {
   fill: none;
   stroke: steelblue;

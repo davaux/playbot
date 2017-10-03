@@ -1,6 +1,6 @@
 @import play.api.libs.json._
-@(dataPoints: List[DataPoint])
+@(dataPoints: List[DataPoint], buys: List[DataPoint], sells: List[DataPoint])
 
-@mainTrade("Welcome to Play")(dataPoints) {
+@mainTrade("Welcome to Play")(dataPoints, buys, sells) {
   <h1>Welcome to Play!</h1>
 }

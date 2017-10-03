@@ -34,7 +34,7 @@ object DataPoint {
  * application's home page.
  */
 @Singleton
-class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSystem: ActorSystem) extends AbstractController(cc) {
+class HomeController @Inject()(config: Configuration, cc: ControllerComponents, ws: WSClient, actorSystem: ActorSystem) extends AbstractController(cc) {
 
   val periods = Array(300, 900, 1800, 7200, 14400, 86400)
   val format = new SimpleDateFormat("yyy-MM-dd HH:mm:ss")
@@ -59,16 +59,16 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
 
   def backtest(pair: String, period: Int) = Action.async { implicit request: Request[AnyContent] =>
     
-    val botChart = new BotChart("poloniex", pair, period)
+    val botChart = new BotChart(config, ws, "bittrex", pair, period)
     //val strategy = new BotBacktestStrate();
-    val strategy = new BotStrategy();
-    val historicalData = botChart.data(ws);
+    val strategy = new BotStrategy(botChart);
+    val historicalData = botChart.data();
     var dataPoints: ListBuffer[DataPoint] = new ListBuffer[DataPoint]()
 
     historicalData.map(listOfChartData => 
       {
         for(chartData <- listOfChartData) {
-          val candleStick = new BotCandleStick(period, chartData.open, chartData.close, chartData.high, chartData.low, chartData.weightedAverage)
+          val candleStick = new BotCandleStick(format.format(chartData.date * 1000L), period, chartData.open, chartData.close, chartData.high, chartData.low, chartData.weightedAverage)
           strategy.tick(candleStick)
           //Logger.info("" + chartData)
 
@@ -87,22 +87,22 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
         //println(leastSquaresCoeff(2))
         Logger.info(s"Total Profit : ${strategy.profit()}")
         strategy.hitrate()
-        Ok(views.html.trade(dataPoints.toList))
+        Ok(views.html.trade(dataPoints.toList, strategy.getBuys, strategy.getSells))
       }
     )
   }
 
   def live(pair: String) = Action { implicit request: Request[AnyContent] =>
     
-    val period = /*periods(0)*/60
+    val period = periods(0)
     //val lengthOfMA = 10;
-    val botChart = new BotChart("poloniex", pair, period)
+    val botChart = new BotChart(config, ws, "bittrex", pair, period)
     var prices: ListBuffer[Double] = ListBuffer.empty[Double]
-    var developingCandleStick = new BotCandleStick(period);
-    strategy = new BotStrategy();
+    var developingCandleStick = new BotCandleStick(format.format(Calendar.getInstance().getTime()), period);
+    strategy = new BotStrategy(botChart);
 
-    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 10.seconds) {
-      val futureResult: Future[Option[Double]] = botChart.getCurrentPrice(ws)
+    cancellable = actorSystem.scheduler.schedule(initialDelay = 10.seconds, interval = 30.seconds) {
+      val futureResult: Future[Option[Double]] = botChart.getCurrentPrice()
       
       futureResult.onComplete {
         case Success(value) => {
@@ -114,7 +114,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
             strategy.tick(developingCandleStick)
             val dataDate = format.format(Calendar.getInstance().getTime())
             dataPointsLive += new DataPoint(dataDate, developingCandleStick.priceAverage.toString, "", "", "")
-            developingCandleStick = new BotCandleStick(period)
+            developingCandleStick = new BotCandleStick(format.format(Calendar.getInstance().getTime()), period)
           }
 
           /*if(prices.length > 0) {
@@ -135,7 +135,7 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient, actorSyst
     cancellable.cancel()
     Logger.info(s"Total Profit : ${strategy.profit()}")
     strategy.hitrate()
-    Ok(views.html.trade(dataPointsLive.toList))
+    Ok(views.html.trade(dataPointsLive.toList, strategy.getBuys, strategy.getSells))
   }
 
 
