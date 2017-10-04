@@ -10,9 +10,11 @@
 
 
 // set the dimensions and margins of the graph
-var margin = {top: 20, right: 20, bottom: 30, left: 50},
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+var margin = {top: 20, right: 20, bottom: 210, left: 60},
+    margin2 = {top: 430, right: 20, bottom: 30, left: 60},
+    width = 1024 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom,
+    height2 = 600 - margin2.top - margin2.bottom;
 
 // parse the date / time
 var parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
@@ -26,7 +28,14 @@ var new_y = y;
 // define the line
 var valueline = d3.line()
     .x(function(d) { return x(d.date); })
-    .y(function(d) { return y(d.close); });
+    .y(function(d) { return y(d.priceAverage); });
+
+// ATR
+var xScaleATR = d3.scaleTime().range([0, width]);
+var yScaleATR = d3.scaleLinear().range([height2, 0]);
+// define the ATR lines
+
+var atrPeriod = 10;
 
 // append the svg obgect to the body of the page
 // appends a 'group' element to 'svg'
@@ -34,9 +43,14 @@ var valueline = d3.line()
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var context = svg.append("g")
+    .attr("class", "context")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
 
 
 var zoom = d3.zoom()
@@ -55,26 +69,140 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
   // format the data
   data.forEach(function(d) {
       d.date = parseTime(d.date);
-      d.close = +d.price;
+      d.priceAverage = +d.price;
+      d.open = +d.open;
+      d.close = +d.close;
+      d.high = +d.high;
+      d.low = +d.low;
   });
-
   buys.forEach(function(d) {
-    d.date = parseTime(d.date);
-    d.close = +d.price;
+      d.date = parseTime(d.date);
+      d.priceAverage = +d.price;
+      d.open = +d.open;
+      d.close = +d.close;
+      d.high = +d.high;
+      d.low = +d.low;
   });
-
   sells.forEach(function(d) {
-    d.date = parseTime(d.date);
-    d.close = +d.price;
+      d.date = parseTime(d.date);
+      d.priceAverage = +d.price;
+      d.open = +d.open;
+      d.close = +d.close;
+      d.high = +d.high;
+      d.low = +d.low;
   });
 
 
   // Scale the range of the data
   x.domain(d3.extent(data, function(d) { return d.date; }));
-  y.domain([0, d3.max(data, function(d) { return d.close; })]);
+  y.domain([0, d3.max(data, function(d) { return d.priceAverage; })]);
+
+  xScaleATR.domain(d3.extent(data, function(d) { return d.date; }));
+  yScaleATR.domain([d3.min(data, function(d) { return d.high - d.low; }), d3.max(data, function(d) { return d.high - d.low; })]);
+
+  var xAxisATR = d3.axisBottom(xScaleATR)
+        .tickFormat(d3.timeFormat("%m-%d %X"));
+
+  // Add the X Axis
+  context.append("g")
+      .attr("transform", "translate(0," + height2 + ")")
+      .call(xAxisATR);
+
+  var yAxisATR = d3.axisLeft(yScaleATR);
+
+  // Add the Y Axis
+  context.append("g")
+      .call(yAxisATR);
+
+var atrlineCurrent = d3.line()
+    .x(function(d) { return xScaleATR(d.date); })
+    .y(function (d, i) {
+
+        var count = Math.min(atrPeriod, i + 1),
+                first = i + 1 - count;
+
+        var sum = 0;
+        for (var index = first; index <= i; ++index) {
+          var tr1 = data[index]['high'] - data[index]['low'];
+          var tr2 = 0;
+          var tr3 = 0;
+          if(index >= 1) {
+            tr2 = Math.abs(data[index]['high'] - data[index - 1]['close']);
+            tr3 = Math.abs(data[index]['low'] - data[index - 1]['close']);
+          }
+          var max = Math.max(tr1, tr2, tr3);
+          sum += max;
+        }
+        var mean = sum / count;
+
+        return yScaleATR(mean);
+    });
+
+
+
+var atrlinePast = d3.line()
+    .x(function(d) { return xScaleATR(d.date); })
+    .y(function (d, i) {
+
+        var count = Math.min(atrPeriod, i + 6),
+                first = i + 6 - count;
+
+        var sum = 0;
+        for (var index = first; index <= i; ++index) {
+          var tr1 = data[index]['high'] - data[index]['low'];
+          var tr2 = 0;
+          var tr3 = 0;
+          if(index >= 1) {
+            tr2 = Math.abs(data[index]['high'] - data[index - 1]['close']);
+            tr3 = Math.abs(data[index]['low'] - data[index - 1]['close']);
+          }
+          var max = Math.max(tr1, tr2, tr3);
+          sum += max;
+        }
+        var mean = sum / count;
+
+        return yScaleATR(mean);
+    });
+
+
+
+var momentumPeriod = 14;
+var momentumline = d3.line()
+    .x(function(d) { return x(d.date); })
+    .y(function (d, i) {
+
+        var count = Math.min(momentumPeriod, i + 1),
+                first = i + 1 - count;
+
+        //console.log("i ", i, " first ", first);
+        var momentum = data[i]['close'] * 100 / data[first]['close']
+        console.log("momentum ", momentum)
+        return y(momentum);
+    });
+
+
+  focus.append('g')
+    .append("path")
+    .data([data])
+    .attr("class", "momentum")
+    .attr("d", momentumline);
+
+
+  context.append('g')
+    .append("path")
+    .data([data])
+    .attr("class", "atrCurrent")
+    .attr("d", atrlineCurrent);
+
+
+  context.append('g')
+    .append("path")
+    .data([data])
+    .attr("class", "atrPast")
+    .attr("d", atrlinePast);
 
   // Add the valueline path.
-  var lines = svg.append("path")
+  var lines = focus.append("path")
       .data([data])
       .attr("class", "line")
       .attr("d", valueline);
@@ -82,45 +210,42 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
 
 
   // Add the scatterplot
-  var buyDots = svg.selectAll("dot")
+  var buyDots = focus.selectAll("dot")
       .data(buys)
     .enter().append("circle")
       .attr("class", "buys")
-      .attr("r", 5)
+      .attr("r", 2)
       .attr("cx", function(d) { return x(d.date); })
-      .attr("cy", function(d) { return y(d.close); });
+      .attr("cy", function(d) { return y(d.priceAverage); });
 
 
   // Add the scatterplot
-  var sellDots = svg.selectAll("dot")
+  var sellDots = focus.selectAll("dot")
       .data(sells)
     .enter().append("circle")
       .attr("class", "sells")
-      .attr("r", 5)
+      .attr("r", 2)
       .attr("cx", function(d) { return x(d.date); })
-      .attr("cy", function(d) { return y(d.close); });
+      .attr("cy", function(d) { return y(d.priceAverage); });
 
   var xAxis = d3.axisBottom(x)
         .tickFormat(d3.timeFormat("%m-%d %X"));
 
   // Add the X Axis
-  var gX = svg.append("g")
+  var gX = focus.append("g")
       .attr("transform", "translate(0," + height + ")")
       .call(xAxis);
 
   var yAxis = d3.axisLeft(y);
 
   // Add the Y Axis
-  var gY = svg.append("g")
+  var gY = focus.append("g")
       .call(yAxis);
 
 	var xLabels = data.map(function (d) { return d.date; })	
 	// get the x and y values for least squares
 	var xSeries = d3.range(1, xLabels.length + 1);
-	var ySeries = data.map(function(d) { return d.close; });
-
-	console.log(xSeries);
-	console.log(ySeries);
+	var ySeries = data.map(function(d) { return d.priceAverage; });
 
 	var leastSquaresCoeff = leastSquares(xSeries, ySeries);
 	console.log(leastSquaresCoeff[0]);
@@ -134,7 +259,7 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
 	var y2 = leastSquaresCoeff[0] * xSeries.length + leastSquaresCoeff[1];
 	var trendData = [[x1,y1,x2,y2]];
 
-	var trendline = svg.selectAll(".trendline")
+	var trendline = focus.selectAll(".trendline")
 	.data(trendData);
 
 	trendline.enter()
@@ -147,7 +272,7 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
 	.attr("stroke", "black")
 	.attr("stroke-width", 1);
 
-	var yValue = 'close';
+	var yValue = 'priceAverage';
 	var movingAverageA = 5
 	var trackerA = d3.line();
     trackerA.x(function (d) {
@@ -168,7 +293,7 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
         return y(mean);
     });
 
-    var smaShort = svg.append('g')
+    var smaShort = focus.append('g')
 	    .append("path")
 	    .data([data])
 	    .attr("class", "trackerA")
@@ -196,48 +321,48 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
         return y(mean);
     });
 
-    var smaLong = svg.append('g')
+    var smaLong = focus.append('g')
       .append("path")
       .data([data])
       .attr("class", "trackerB")
       .classed('trackerB-close-avg', true)
       .attr("d", trackerB);
 
-	const focus = svg.append('g')
-      .attr('class', 'focus')
+	const crosshairs = focus.append('g')
+      .attr('class', 'crosshairs')
       .style('display', 'none');
 
-    focus.append('circle')
+    crosshairs.append('circle')
       .attr('r', 4.5);
 
-    focus.append('line')
+    crosshairs.append('line')
       .classed('x', true);
 
-    focus.append('line')
+    crosshairs.append('line')
       .classed('y', true);
 
-    focus.append('text')
+    crosshairs.append('text')
       .attr('x', 9)
       .attr('dy', '.35em');
 
-    var overlay = svg.append('rect')
+    var overlay = focus.append('rect')
       .attr('class', 'overlay')
       .attr('width', width)
       .attr('height', height)
-      .on('mouseover', () => focus.style('display', null))
-      .on('mouseout', () => focus.style('display', 'none'))
+      .on('mouseover', () => crosshairs.style('display', null))
+      .on('mouseout', () => crosshairs.style('display', 'none'))
       .on('mousemove', mousemove);
 
-    d3.selectAll('.focus')
+    d3.selectAll('.crosshairs')
       .style('opacity', 0.7);
 
-    d3.selectAll('.focus circle')
+    d3.selectAll('.crosshairs circle')
       .styles({
         fill: 'none',
         stroke: 'black'
       });
 
-    d3.selectAll('.focus line')
+    d3.selectAll('.crosshairs line')
       .styles({
         fill: 'none',
         'stroke': 'black',
@@ -248,7 +373,7 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
     d3.select("button")
     .on("click", resetted);
 
-    svg.call(zoom)
+    focus.call(zoom)
 
     /*var root = svg.append('g')
             .attr('class', 'crosshairs');
@@ -299,20 +424,20 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
       const d0 = data[i - 1];
       const d1 = data[i];
       const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
-      focus.attr('transform', `translate(${new_x(d.date)}, ${new_y(d.close)})`);
-      focus.select('line.x')
+      crosshairs.attr('transform', `translate(${new_x(d.date)}, ${new_y(d.priceAverage)})`);
+      crosshairs.select('line.x')
         .attr('x1', 0)
         .attr('x2', -new_x(d.date))
         .attr('y1', 0)
         .attr('y2', 0);
 
-      focus.select('line.y')
+      crosshairs.select('line.y')
         .attr('x1', 0)
         .attr('x2', 0)
         .attr('y1', 0)
-        .attr('y2', height - new_y(d.close));
+        .attr('y2', height - new_y(d.priceAverage));
 
-      focus.select('text').text(formatCurrency(d.close));
+      crosshairs.select('text').text(formatCurrency(d.priceAverage));
     }
 
 	// returns slope, intercept and r-square of the line
@@ -348,13 +473,13 @@ const formatCurrency = d => `BTC${formatValue(d)}`;
     smaShort.attr("transform", d3.event.transform)
     smaLong.attr("transform", d3.event.transform)
     trendline.attr("transform", d3.event.transform)
-    focus.attr("transform", d3.event.transform)
-    buyDots.attr("transform", d3.event.transform)
-    sellDots.attr("transform", d3.event.transform)
+    crosshairs.attr("transform", d3.event.transform)
+    buyDots.attr("transform", d3.event.transform);
+    sellDots.attr("transform", d3.event.transform);
   }
 
   function resetted() {
-    svg.transition()
+    focus.transition()
         .duration(750)
         .call(zoom.transform, d3.zoomIdentity);
   }

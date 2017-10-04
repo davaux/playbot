@@ -21,8 +21,8 @@ class BotChart(config: Configuration, ws: WSClient, exchange: String, pair: Stri
 	//val startTime = 1493640000 // 2017-05-01 12:00:00
 	//val endTime = 1493726400 // 2017-05-02 12:00:00
 	val dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    val parsedStartDate = dateFormat.parse("2017-06-13 01:00:00");
-    val parsedEndDate = dateFormat.parse("2017-09-14 08:00:00");
+    val parsedStartDate = dateFormat.parse("2017-09-28 12:00:00");
+    val parsedEndDate = dateFormat.parse("2017-09-30 12:00:00");
     val calStartDate = Calendar.getInstance
     calStartDate.setTime(parsedStartDate)
     val calEndDate = Calendar.getInstance
@@ -150,16 +150,24 @@ class BotChart(config: Configuration, ws: WSClient, exchange: String, pair: Stri
 		}
 	}
 
-	def getBalance(currency: String = "BTC"): Double = {
+	def getBalance(currency: String = "BTC"): Future[Option[Double]] = {
 		//if(exchange == "bittrex") {
-			val request: WSRequest = ws.url("https://bittrex.com/api/v1.1/account/getbalance")
+
+			val apiKey = config.get[String]("api.key")
+			val nonce = Calendar.getInstance.getTimeInMillis / 1000
+			val uriBase = "https://bittrex.com/api/v1.1/account/getbalance"
+			val uri = s"${uriBase}?apikey=${apiKey}&nonce=${nonce}&currency=${currency}"
+			val hash = sign(uri)
+			val request: WSRequest = ws.url(uriBase)
 			val complexRequest: WSRequest =
-			request.addHttpHeaders("Accept" -> "application/json")
-				.addQueryStringParameters("apikey" -> config.get[String]("api.key"))
+			request.addHttpHeaders("Accept" -> "application/json", "apisign" -> hash)
+				.addQueryStringParameters("apikey" -> apiKey)
+				.addQueryStringParameters("nonce" -> nonce.toString)
 				.addQueryStringParameters("currency" -> currency)
 				.withRequestTimeout(10000.millis)
-			val result: Future[Option[Double]] = complexRequest.get().map {
+			complexRequest.get().map {
 				response =>
+					Logger.info("reponse " + response.json)
 					val result: JsResult[Double] = (response.json \ "result" \ "Balance").validate[Double]
 					result match {
 						case s: JsSuccess[Double] => {
@@ -171,18 +179,16 @@ class BotChart(config: Configuration, ws: WSClient, exchange: String, pair: Stri
 						}
 					}
 			}
-
-			var balance = 0.0
-
-			result.onComplete {
-        		case Success(value) => balance = value.get
-				case Failure(e) => e.printStackTrace
-			}
-
-			Logger.info(s"Balance Bittrex: $balance")
-
-			balance
-
 		//}
+	}
+
+	private def sign(uri: String) = {
+		import com.roundeights.hasher.{Hasher, Algo}
+		import scala.language.postfixOps
+
+		val apiSecret = config.get[String]("api.secret")
+		val algo = Algo.hmac(apiSecret).sha512
+		val hash = algo(uri)
+		hash.hex
 	}
 }

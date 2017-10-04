@@ -10,7 +10,7 @@ scalaVersion := "2.12.3"
 libraryDependencies += guice
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
 libraryDependencies += ws
-
+libraryDependencies ++= Seq("com.roundeights" %% "hasher" % "1.2.0")
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.davaux.controllers._"
 

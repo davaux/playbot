@@ -2,7 +2,7 @@ package models
 
 import play.api.Logger
 
-class BotTrade(entryPrice: Double, quantity: Double, stopLossAmout: Double) {
+class BotTrade(val entryPrice: Double, quantity: Double, stopLossAmout: Double) {
 	Logger.info(s"Trade opened")
 	var status = "OPEN";
 	var exitPrice = 0.0
@@ -17,7 +17,8 @@ class BotTrade(entryPrice: Double, quantity: Double, stopLossAmout: Double) {
 	}
 
 	def showTrade() = {
-		var tradeStatus = s"Entry Price: $entryPrice Quantity: $quantity Status: $status Exit Price: $exitPrice"
+		val percentGain = exitPrice / entryPrice
+		var tradeStatus = s"Entry Price: $entryPrice Quantity: $quantity Status: $status Exit Price: $exitPrice Gain: $percentGain"
 
 		if(status == "CLOSED") {
 			tradeStatus += " Profit: "

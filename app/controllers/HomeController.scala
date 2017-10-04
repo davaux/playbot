@@ -23,7 +23,7 @@ case class Ticker(id: Int, last: Double, lowestAsk: Double, highestBid: Double,
   percentChange: Double, baseVolume: Double, quoteVolume: Double, isFrozen: Int, 
   high24hr: Double, low24hr: Double)
 
-case class DataPoint(date: String, price: String, trend: String, label: String, desc: String)
+case class DataPoint(date: String, price: String, open: String, close: String, high: String, low: String, trend: String, label: String, desc: String)
 
 object DataPoint {
   implicit val dataPointWrites = Json.writes[DataPoint]
@@ -59,7 +59,7 @@ class HomeController @Inject()(config: Configuration, cc: ControllerComponents, 
 
   def backtest(pair: String, period: Int) = Action.async { implicit request: Request[AnyContent] =>
     
-    val botChart = new BotChart(config, ws, "bittrex", pair, period)
+    val botChart = new BotChart(config, ws, "poloniex", pair, period)
     //val strategy = new BotBacktestStrate();
     val strategy = new BotStrategy(botChart);
     val historicalData = botChart.data();
@@ -74,7 +74,7 @@ class HomeController @Inject()(config: Configuration, cc: ControllerComponents, 
 
           val lastPairPrice = chartData.weightedAverage
           val dataDate = format.format(chartData.date * 1000L)
-          dataPoints += new DataPoint(dataDate, lastPairPrice.toString, "", "", "")
+          dataPoints += new DataPoint(dataDate, lastPairPrice.toString, chartData.open.toString, chartData.close.toString, chartData.high.toString, chartData.low.toString, "", "", "")
         }
         val xLabels = dataPoints.map(_.date);
         val xSeries = for (i <- List.range(1, xLabels.size + 1)) yield i.toDouble
@@ -113,7 +113,7 @@ class HomeController @Inject()(config: Configuration, cc: ControllerComponents, 
             candleSticks += developingCandleStick
             strategy.tick(developingCandleStick)
             val dataDate = format.format(Calendar.getInstance().getTime())
-            dataPointsLive += new DataPoint(dataDate, developingCandleStick.priceAverage.toString, "", "", "")
+            dataPointsLive += new DataPoint(dataDate, developingCandleStick.priceAverage.toString, "", "", "", "", "", "", "")
             developingCandleStick = new BotCandleStick(format.format(Calendar.getInstance().getTime()), period)
           }
 
