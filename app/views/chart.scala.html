@@ -273,7 +273,7 @@ var momentumline = d3.line()
 	.attr("stroke-width", 1);
 
 	var yValue = 'priceAverage';
-	var movingAverageA = 5
+	var movingAverageA = 10
 	var trackerA = d3.line();
     trackerA.x(function (d) {
         return x(d.date);
@@ -301,7 +301,7 @@ var momentumline = d3.line()
 	    .attr("d", trackerA);
 
 
-  var movingAverageB = 15
+  var movingAverageB = 40
   var trackerB = d3.line();
     trackerB.x(function (d) {
         return x(d.date);

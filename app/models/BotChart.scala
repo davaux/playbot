@@ -168,7 +168,7 @@ class BotChart(config: Configuration, ws: WSClient, exchange: String, pair: Stri
 			complexRequest.get().map {
 				response =>
 					Logger.info("reponse " + response.json)
-					val result: JsResult[Double] = (response.json \ "result" \ "Balance").validate[Double]
+					val result: JsResult[Double] = (response.json \ "result" \ "Available").validate[Double]
 					result match {
 						case s: JsSuccess[Double] => {
 							Some(s.get)
@@ -180,6 +180,119 @@ class BotChart(config: Configuration, ws: WSClient, exchange: String, pair: Stri
 					}
 			}
 		//}
+	}
+
+	def bittrexBuy(quantity: Double, rate: Double): Future[Option[String]] = {
+		//"https://bittrex.com/api/v1.1/market/buylimit?apikey=API_KEY&market=BTC-LTC&quantity=1.2&rate=1.3"
+		val market = pair.replace("_", "-")
+		val sRate = "%.8f" format rate
+		val sQuantity = "%.8f" format quantity
+		val apiKey = config.get[String]("api.key")
+		val nonce = Calendar.getInstance.getTimeInMillis / 1000
+		val uriBase = "https://bittrex.com/api/v1.1/market/buylimit"
+		val uri = s"${uriBase}?apikey=${apiKey}&nonce=${nonce}&market=${market}&quantity=${sQuantity}&rate=${sRate}"
+		Logger.info(s"uri: $uri")
+		val hash = sign(uri)
+		val request: WSRequest = ws.url(uriBase)
+		val complexRequest: WSRequest =
+		request.addHttpHeaders("Accept" -> "application/json", "apisign" -> hash)
+			.addQueryStringParameters("apikey" -> apiKey)
+			.addQueryStringParameters("nonce" -> nonce.toString)
+			.addQueryStringParameters("market" -> market)
+			.addQueryStringParameters("quantity" -> sQuantity)
+			.addQueryStringParameters("rate" -> sRate)
+			.withRequestTimeout(10000.millis)
+		complexRequest.get().map {
+			response =>
+				Logger.info("reponse " + response.json)
+				val result: JsResult[String] = (response.json \ "result" \ "uuid").validate[String]
+				result match {
+					case s: JsSuccess[String] => {
+						Some(s.get)
+					}
+					case e: JsError => {
+						Logger.error(JsError.toJson(e).toString())
+						None
+					}
+				}
+		}
+	}
+
+
+	def bittrexSell(quantity: Double, rate: Double): Future[Option[String]] = {
+		//"https://bittrex.com/api/v1.1/market/selllimit?apikey=API_KEY&market=BTC-LTC&quantity=1.2&rate=1.3"
+		val market = pair.replace("_", "-")
+		val sRate = "%.8f" format rate
+		val sQuantity = "%.8f" format quantity
+		val apiKey = config.get[String]("api.key")
+		val nonce = Calendar.getInstance.getTimeInMillis / 1000
+		val uriBase = "https://bittrex.com/api/v1.1/market/selllimit"
+		val uri = s"${uriBase}?apikey=${apiKey}&nonce=${nonce}&market=${market}&quantity=${sQuantity}&rate=${sRate}"
+		val hash = sign(uri)
+		val request: WSRequest = ws.url(uriBase)
+		val complexRequest: WSRequest =
+		request.addHttpHeaders("Accept" -> "application/json", "apisign" -> hash)
+			.addQueryStringParameters("apikey" -> apiKey)
+			.addQueryStringParameters("nonce" -> nonce.toString)
+			.addQueryStringParameters("market" -> market)
+			.addQueryStringParameters("quantity" -> sQuantity)
+			.addQueryStringParameters("rate" -> sRate)
+			.withRequestTimeout(10000.millis)
+		complexRequest.get().map {
+			response =>
+				Logger.info("reponse " + response.json)
+				val result: JsResult[String] = (response.json \ "result" \ "uuid").validate[String]
+				result match {
+					case s: JsSuccess[String] => {
+						Some(s.get)
+					}
+					case e: JsError => {
+						Logger.error(JsError.toJson(e).toString())
+						None
+					}
+				}
+		}
+	}
+
+	def sell(): Unit = {
+		val apiKey = config.get[String]("api.key")
+		val nonce = Calendar.getInstance.getTimeInMillis / 1000
+		val uriBase = "https://bittrex.com/api/v1.1/market/selllimit"
+		val uri = s"${uriBase}?apikey=${apiKey}&nonce=${nonce}&market=${pair.replace("_", "-")}&quantity=1&rate=1"
+		val hash = sign(uri)
+		val request: WSRequest = ws.url(uriBase)
+		val complexRequest: WSRequest =
+		request.addHttpHeaders("Accept" -> "application/json", "apisign" -> hash)
+			.addQueryStringParameters("apikey" -> apiKey)
+			.addQueryStringParameters("nonce" -> nonce.toString)
+			.addQueryStringParameters("market" -> pair.replace("_", "-"))
+			.addQueryStringParameters("quantity" -> "1")
+			.addQueryStringParameters("rate" -> "1")
+			.withRequestTimeout(10000.millis)
+		complexRequest.get().map {
+			response =>
+				Logger.info("reponse " + response.json)
+		}
+	}
+
+	def bittrexOpenOrders(): Unit = {
+		val apiKey = config.get[String]("api.key")
+		val nonce = Calendar.getInstance.getTimeInMillis / 1000
+		val uriBase = "https://bittrex.com/api/v1.1/market/getopenorders"
+		val uri = s"${uriBase}?apikey=${apiKey}&nonce=${nonce}&market=${pair.replace("_", "-")}"
+		val hash = sign(uri)
+		val request: WSRequest = ws.url(uriBase)
+		val complexRequest: WSRequest =
+		request.addHttpHeaders("Accept" -> "application/json", "apisign" -> hash)
+			.addQueryStringParameters("apikey" -> apiKey)
+			.addQueryStringParameters("nonce" -> nonce.toString)
+			.addQueryStringParameters("market" -> pair.replace("_", "-"))
+			.withRequestTimeout(10000.millis)
+		complexRequest.get().map {
+			response =>
+				Logger.info("reponse " + response.json)
+		}
+
 	}
 
 	private def sign(uri: String) = {

@@ -53,13 +53,15 @@ class HomeController @Inject()(config: Configuration, cc: ControllerComponents, 
    * will be called when the application receives a `GET` request with
    * a path of `/`.
    */
-  def index() = Action { implicit request: Request[AnyContent] =>
+  def index() = Action { implicit request: Request[AnyContent] =>    
+    val botChart = new BotChart(config, ws, "bittrex", "BTC_DGB", 300)
+    botChart.sell();
     Ok(views.html.index())
   }
 
   def backtest(pair: String, period: Int) = Action.async { implicit request: Request[AnyContent] =>
     
-    val botChart = new BotChart(config, ws, "poloniex", pair, period)
+    val botChart = new BotChart(config, ws, "bittrex", pair, period)
     //val strategy = new BotBacktestStrate();
     val strategy = new BotStrategy(botChart);
     val historicalData = botChart.data();

@@ -34,7 +34,7 @@ class BotCandleStick(val date: String, period: Int = 300, var open: Double = 0.0
 			priceAverage = (high + low + close) / 3.0
 		}
 
-		Logger.debug(s"Open: $open Close: $close High: $high Low: $low Current: $current")
+		//Logger.debug(s"Open: $open Close: $close High: $high Low: $low Current: $current")
 	}
 
 	def isClosed(): Boolean = closed

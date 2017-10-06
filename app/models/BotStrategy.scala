@@ -23,7 +23,7 @@ class BotStrategy(botChart: BotChart) {
 	val numSimulTrades = 1
 	val indicators = new BotIndicators()
 	val smaShort = 5
-	val smaLong = 20
+	val smaLong = 15
 	var previousPrice = 0.0
 	val atrShift = 11
 	val atrPeriod = 15
@@ -87,25 +87,26 @@ class BotStrategy(botChart: BotChart) {
 
 		val shortMovingAverage = indicators.movingAverage(prices.toList, smaShort)
 		val longMovingAverage = indicators.movingAverage(prices.toList, smaLong)
-		val movingAverageA_1 = indicators.movingAverage(prices.toList, smaShort)
-		val movingAverageA_2 = indicators.movingAverage(prices.toList, smaShort, 1)
-		val movingAverageB_1 = indicators.movingAverage(prices.toList, smaLong)
-		val movingAverageB_2 = indicators.movingAverage(prices.toList, smaLong, 1)
-		val atrCurrent = indicators.atr(ranges.toList, atrPeriod);
+		val shortMovingAverage_1 = indicators.movingAverage(prices.toList, smaShort)
+		val shortMovingAverage_2 = indicators.movingAverage(prices.toList, smaShort, 2)
+		val longMovingAverage_1 = indicators.movingAverage(prices.toList, smaLong)
+		val longMovingAverage_2 = indicators.movingAverage(prices.toList, smaLong, 2)
+		/*val atrCurrent = indicators.atr(ranges.toList, atrPeriod);
 		val atrPast = indicators.atr(ranges.toList, atrPeriod, atrShift);
-		val momentum = indicators.momentum(prices.toList)
+		val momentum = indicators.momentum(prices.toList)*/
 
 
 		val percentOfAccountValue = (0.0005 / accountBalance )
 
-		val xLabels = dates.toList;
+		val xLabels = dates.reverse.slice(0, 5).toList;
 		val xSeries = for (i <- List.range(1, xLabels.size + 1)) yield i.toDouble
         //println(xSeries)
-        val ySeries = prices.toList
+        val ySeries = prices.reverse.slice(0, 5).toList
 
         val leastSquaresCoeff = leastSquares(xSeries, ySeries);
+        val slope = leastSquaresCoeff(0)
 
-        var x1 = xLabels(0);
+        /*var x1 = xLabels(0);
 		var y1 = leastSquaresCoeff(0) + leastSquaresCoeff(1);
 		var x2 = xLabels(xLabels.size - 1);
 		var y2 = leastSquaresCoeff(0) * xSeries.size + leastSquaresCoeff(1);
@@ -113,77 +114,137 @@ class BotStrategy(botChart: BotChart) {
 		val pX = dates.last
 		val pY = currentPrice
 
-		val value = (x2 - x1) * (pY - y1) - (pX - x1) * (y2 - y1)
-		Logger.info(s"Momentum: ${indicators.momentum(prices.toList)}")
+		val value = (x2 - x1) * (pY - y1) - (pX - x1) * (y2 - y1)*/
+		/*Logger.info(s"Momentum: ${indicators.momentum(prices.toList)}")
 		Logger.info(s"leastSquares: ${value}")
+		Logger.info(s"Slope : ${slope}")*/
 
 		for(trade <- trades) {
 			if(trade.status == "OPEN") openTrades += trade
 		}
 
-		if(prices.size > 2) {
-			Logger.info(s"Percentage of balance $percentOfAccountValue")
-			if(percentOfAccountValue < 0.1) {
-				val limit = accountBalance * percentOfAccountValue // 5% of account balance on each trade
-				if(limit >= 0.0005) {
-					var quantity = currentPrice / limit//1.0//0.0005 / currentPrice
+		Logger.info(s"Percentage of balance $percentOfAccountValue")
+		if(percentOfAccountValue < 0.1) {
+			val limit = accountBalance * percentOfAccountValue // 5% of account balance on each trade
+			if(limit >= 0.0005) {
+				var quantity = currentPrice / limit//1.0//0.0005 / currentPrice
 
-					// ENTRY RULES
-					if(openTrades.size < numSimulTrades && quantity > 0) {
-						// Rule to ENTER a Long trade
-						/*if(value < 0) {
-							trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
-							totalAmountPair += quantity
-							accountBalance = accountBalance - (quantity * currentPrice)
-							buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
-						}*/
-						if(value < 0) {
-							if(currentPrice < longMovingAverage) {
+				// ENTRY RULES
+				if(openTrades.size < numSimulTrades && quantity > 0) {
+					// Rule to ENTER a Long trade
+					/*if(slope > 0) {
+						trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+						totalAmountPair += quantity
+						accountBalance = accountBalance - (quantity * currentPrice)
+						buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+					}*/
+					/*if(longMovingAverage_2 > longMovingAverage && slope > 0) {
+						trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+						totalAmountPair += quantity
+						accountBalance = accountBalance - (quantity * currentPrice)
+						buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+					}*/
+					/*if(currentPrice < longMovingAverage) {
+						trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+						totalAmountPair += quantity
+						accountBalance = accountBalance - (quantity * currentPrice)
+						buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+					}*/
+					if(currentPrice < longMovingAverage) {
+						botChart.bittrexBuy(quantity, currentPrice).onComplete {
+				    		case Success(value) => {
+				    			Logger.info(s"uuid: ${value.get}")
 								trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
 								totalAmountPair += quantity
 								accountBalance = accountBalance - (quantity * currentPrice)
 								buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+				    		}
+							case Failure(e) => {
+								import java.io.StringWriter
+								import java.io.PrintWriter
+								val sw = new StringWriter
+								e.printStackTrace(new PrintWriter(sw))
+								Logger.error(sw.toString)
 							}
 						}
-						//sma40_2 > sma10_2 && sma10_1 >= sma40_1
-						/*if(value < 0) {
-							if(movingAverageB_2 > movingAverageA_2 && (movingAverageA_1 >= movingAverageB_1)) {
-								trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
-								totalAmountPair += quantity
-								accountBalance = accountBalance - (quantity * currentPrice)
-								//buys += new DataPoint(currentDate, currentPrice.toString, "", "", "")
-							}
-						}*/
 					}
+					/*//sma40_2 > sma10_2 && sma10_1 >= sma40_1
+					if(longMovingAverage_2 > shortMovingAverage_2/* && (shortMovingAverage_1 >= longMovingAverage_1)*/) {
+						trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+						totalAmountPair += quantity
+						accountBalance = accountBalance - (quantity * currentPrice)
+						buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+					}*/
+
+					/*//(sma10_2 > sma40_2 && sma40_1 >= sma10_1)
+					if(shortMovingAverage_2 > longMovingAverage_2 && (longMovingAverage_1 >= shortMovingAverage_1)) {
+						trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+						totalAmountPair -= quantity
+						accountBalance = accountBalance + (quantity * currentPrice)
+						sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+					}*/
 				}
 			}
-		}	
+		}
 
 		// EXIT RULES
 		for(trade <- openTrades) {
 			// Rule to EXIT a Long trade
-			/*if(value >= 0) {
+			/*if(slope <= 0) {
 				trade.close(currentPrice)
 				totalAmountPair -= trade.getQuantity
 				accountBalance += trade.getQuantity * currentPrice
 				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
 			}*/
-			if(value >= 0) {
-				if(currentPrice > longMovingAverage/* && currentPrice > trade.entryPrice * (1 + 0.1)*/) {
-					trade.close(currentPrice)
-					totalAmountPair -= trade.getQuantity
-					accountBalance += trade.getQuantity * currentPrice
-					sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+			/*if(longMovingAverage_2 < longMovingAverage && slope < 0) {
+				trade.close(currentPrice)
+				totalAmountPair -= trade.getQuantity
+				accountBalance += trade.getQuantity * currentPrice
+				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+			}*/
+			/*if(currentPrice > longMovingAverage) {
+				trade.close(currentPrice)
+				totalAmountPair -= trade.getQuantity
+				accountBalance += trade.getQuantity * currentPrice
+				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+			}*/
+			if(currentPrice > longMovingAverage) {
+				botChart.bittrexSell(trade.getQuantity, currentPrice).onComplete {
+		    		case Success(value) => {
+		    			Logger.info(s"uuid: ${value.get}")
+						trade.close(currentPrice)
+						totalAmountPair -= trade.getQuantity
+						accountBalance += trade.getQuantity * currentPrice
+						sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+		    		}
+					case Failure(e) => {
+						import java.io.StringWriter
+						import java.io.PrintWriter
+						val sw = new StringWriter
+						e.printStackTrace(new PrintWriter(sw))
+						Logger.error(sw.toString)
+					}
 				}
 			}
-			//sma10_2 > sma40_2 && sma40_1 >= sma10_1
-			/*if(value >= 0) {
-				if(movingAverageA_2 > movingAverageB_2 && (movingAverageB_1 >= movingAverageA_1)) {
-					trade.close(currentPrice)
-					totalAmountPair -= trade.getQuantity
-					accountBalance += trade.getQuantity * currentPrice
-					//sells += new DataPoint(currentDate, currentPrice.toString, "", "", "")
-				}
+			/*if(currentPrice > longMovingAverage/* && currentPrice > trade.entryPrice * (1 + 0.1)*/) {
+				trade.close(currentPrice)
+				totalAmountPair -= trade.getQuantity
+				accountBalance += trade.getQuantity * currentPrice
+				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+			}*/
+			/*//sma10_2 > sma40_2 && sma40_1 >= sma10_1
+			if(shortMovingAverage_2 > longMovingAverage_2/* && (longMovingAverage_1 >= shortMovingAverage_1)*/) {
+				trade.close(currentPrice)
+				totalAmountPair -= trade.getQuantity
+				accountBalance += trade.getQuantity * currentPrice
+				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+			}*/
+			/*//(sma40_2 > sma10_2 && sma10_1 >= sma40_1)
+			if(longMovingAverage_2 > shortMovingAverage_2 && (shortMovingAverage_1 >= longMovingAverage_1)) {
+				trade.close(currentPrice) // -7%
+				totalAmountPair += trade.getQuantity
+				accountBalance -= trade.getQuantity * currentPrice
+				buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
 			}*/
 		}		
 	}
@@ -196,6 +257,7 @@ class BotStrategy(botChart: BotChart) {
 					Logger.info("Stop Loss reached")
 					totalAmountPair -= trade.getQuantity
 					accountBalance += trade.getQuantity * currentPrice
+					sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
 				}
 			}
 		}
