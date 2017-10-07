@@ -61,7 +61,7 @@ class HomeController @Inject()(config: Configuration, cc: ControllerComponents, 
 
   def backtest(pair: String, period: Int) = Action.async { implicit request: Request[AnyContent] =>
     
-    val botChart = new BotChart(config, ws, "bittrex", pair, period)
+    val botChart = new BotChart(config, ws, "poloniex", pair, period)
     //val strategy = new BotBacktestStrate();
     val strategy = new BotStrategy(botChart);
     val historicalData = botChart.data();

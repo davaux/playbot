@@ -140,32 +140,6 @@ var atrlineCurrent = d3.line()
 
 
 
-var atrlinePast = d3.line()
-    .x(function(d) { return xScaleATR(d.date); })
-    .y(function (d, i) {
-
-        var count = Math.min(atrPeriod, i + 6),
-                first = i + 6 - count;
-
-        var sum = 0;
-        for (var index = first; index <= i; ++index) {
-          var tr1 = data[index]['high'] - data[index]['low'];
-          var tr2 = 0;
-          var tr3 = 0;
-          if(index >= 1) {
-            tr2 = Math.abs(data[index]['high'] - data[index - 1]['close']);
-            tr3 = Math.abs(data[index]['low'] - data[index - 1]['close']);
-          }
-          var max = Math.max(tr1, tr2, tr3);
-          sum += max;
-        }
-        var mean = sum / count;
-
-        return yScaleATR(mean);
-    });
-
-
-
 var momentumPeriod = 14;
 var momentumline = d3.line()
     .x(function(d) { return x(d.date); })
@@ -193,13 +167,6 @@ var momentumline = d3.line()
     .data([data])
     .attr("class", "atrCurrent")
     .attr("d", atrlineCurrent);
-
-
-  context.append('g')
-    .append("path")
-    .data([data])
-    .attr("class", "atrPast")
-    .attr("d", atrlinePast);
 
   // Add the valueline path.
   var lines = focus.append("path")
