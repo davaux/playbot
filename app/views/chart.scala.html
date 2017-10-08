@@ -213,8 +213,12 @@ var momentumline = d3.line()
 	// get the x and y values for least squares
 	var xSeries = d3.range(1, xLabels.length + 1);
 	var ySeries = data.map(function(d) { return d.priceAverage; });
+  var yHighSeries = data.map(function(d) { return d.high; });
+  var yLowSeries = data.map(function(d) { return d.low; });
 
 	var leastSquaresCoeff = leastSquares(xSeries, ySeries);
+  var leastSquaresCoeffHigh = leastSquares(xSeries, yHighSeries);
+  var leastSquaresCoeffLow = leastSquares(xSeries, yLowSeries);
 	console.log(leastSquaresCoeff[0]);
 	console.log(leastSquaresCoeff[1]);
 	console.log(leastSquaresCoeff[2]);
@@ -226,8 +230,28 @@ var momentumline = d3.line()
 	var y2 = leastSquaresCoeff[0] * xSeries.length + leastSquaresCoeff[1];
 	var trendData = [[x1,y1,x2,y2]];
 
+  var x1High = xLabels[0];
+  var y1High = leastSquaresCoeffHigh[0] + leastSquaresCoeffHigh[1];
+  var x2High = xLabels[xLabels.length - 1];
+  var y2High = leastSquaresCoeffHigh[0] * xSeries.length + leastSquaresCoeffHigh[1];
+  var trendDataHigh = [[x1High,y1High,x2High,y2High]];
+
+  var x1Low = xLabels[0];
+  var y1Low = leastSquaresCoeffLow[0] + leastSquaresCoeffLow[1];
+  var x2Low = xLabels[xLabels.length - 1];
+  var y2Low = leastSquaresCoeffLow[0] * xSeries.length + leastSquaresCoeffLow[1];
+  var trendDataLow = [[x1Low,y1Low,x2Low,y2Low]];
+
 	var trendline = focus.selectAll(".trendline")
 	.data(trendData);
+
+
+ /* var trendlineHigh = focus.selectAll(".trendlineHigh")
+  .data(trendDataHigh);
+
+
+  var trendlineLow = focus.selectAll(".trendlineLow")
+  .data(trendDataLow);*/
 
 	trendline.enter()
 	.append("line")
@@ -238,6 +262,26 @@ var momentumline = d3.line()
 	.attr("y2", function(d) { return y(d[3]); })
 	.attr("stroke", "black")
 	.attr("stroke-width", 1);
+
+ /* trendlineHigh.enter()
+  .append("line")
+  .attr("class", "trendlineHigh")
+  .attr("x1", function(d) { return x(d[0]); })
+  .attr("y1", function(d) { return y(d[1]); })
+  .attr("x2", function(d) { return x(d[2]); })
+  .attr("y2", function(d) { return y(d[3]); })
+  .attr("stroke", "black")
+  .attr("stroke-width", 1);
+
+  trendlineLow.enter()
+  .append("line")
+  .attr("class", "trendlineLow")
+  .attr("x1", function(d) { return x(d[0]); })
+  .attr("y1", function(d) { return y(d[1]); })
+  .attr("x2", function(d) { return x(d[2]); })
+  .attr("y2", function(d) { return y(d[3]); })
+  .attr("stroke", "black")
+  .attr("stroke-width", 1);*/
 
 	var yValue = 'priceAverage';
 	var movingAverageA = 10

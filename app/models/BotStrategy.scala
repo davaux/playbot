@@ -26,7 +26,7 @@ class BotStrategy(botChart: BotChart) {
 	val numSimulTrades = 1
 	val indicators = new BotIndicators()
 	val smaShort = 4
-	val smaLong = 13
+	val smaLong = 20
 	var previousPrice = 0.0
 	val atrShift = 11
 	val atrPeriod = 14
@@ -112,12 +112,32 @@ class BotStrategy(botChart: BotChart) {
 
 		val xLabels = dates.reverse.slice(0, 5).toList;
 		val xSeries = for (i <- List.range(1, xLabels.size + 1)) yield i.toDouble
-        //println(xSeries)
-        val ySeries = prices.reverse.slice(0, 5).toList
 
+        val ySeries = prices.reverse.slice(0, 5).toList
         val leastSquaresCoeff = leastSquares(xSeries, ySeries);
         val slope = leastSquaresCoeff(0)
 
+        val highSeries = highs.reverse.slice(0, 20).toList
+        val linearHighSeries = highSeries.zipWithIndex.map({ case (d, i) => Seq(i, d) })
+        val linearHigh = Regression.linear(linearHighSeries, 20)
+        val highx1 = xLabels(0);
+		val highy1 = linearHigh._1 + linearHigh._2;
+		val highx2 = xLabels(xLabels.length - 1);
+		val highy2 = linearHigh._1 * highSeries.length + linearHigh._2;
+		val highSlope = linearHigh._1
+		Logger.info(s"high slope : $highSlope")
+
+        val lowSeries = lows.reverse.slice(0, 20).toList
+        val linearLowSeries = lowSeries.zipWithIndex.map({ case (d, i) => Seq(i, d) })
+        val linearLow = Regression.linear(linearLowSeries, 20)
+        val lowx1 = xLabels(0);
+		val lowy1 = linearLow._1 + linearLow._2;
+		val lowx2 = xLabels(xLabels.length - 1);
+		val lowy2 = linearLow._1 * lowSeries.length + linearLow._2;
+		val lowSlope = linearLow._1
+		Logger.info(s"low slope : $lowSlope")
+
+        val atr = indicators.atr(ranges.toList, atrPeriod) / currentClose
         val volatilityEntry = previousClose + indicators.atr(ranges.toList, atrPeriod)
         val volatilityExit = previousClose - indicators.atr(ranges.toList, atrPeriod)
 
@@ -129,6 +149,12 @@ class BotStrategy(botChart: BotChart) {
         val smaStochastic = indicators.movingAverage(stochastics.toList, 3)
         val emaShort = indicators.ema(closes.toList, 5)
         val emaLong = indicators.ema(closes.toList, 15)
+        val emaHighs = indicators.ema(highs.toList, 20)
+        val emaLows = indicators.ema(lows.toList, 20)
+
+        if(Math.abs(highSlope - lowSlope) < 0.000001) {
+        	Logger.info("parallel")
+        }
 
 
         /*var x1 = xLabels(0);
@@ -183,12 +209,31 @@ class BotStrategy(botChart: BotChart) {
 							buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
 						}
 					}*/
-					if(emaShort > emaLong) {
-						trades += new BotTrade(currentPrice, quantity, 0.02) // -7%
-						totalAmountPair += quantity
-						accountBalance = accountBalance - (quantity * currentPrice)
-						buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+					if(volatilityRatio > 0.005 && volatilityRatio < 0.01) {
+						if(currentClose < emaLows) {
+							trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+							totalAmountPair += quantity
+							accountBalance = accountBalance - (quantity * currentPrice)
+							buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+						}
 					}
+					/*if(atr > 0.001 && atr < 0.005) {
+						if(Math.abs(highSlope - lowSlope) < 0.000001 && highSlope > 0 && currentPrice <= longMovingAverage) {
+							trades += new BotTrade(currentPrice, quantity, 0.07) // -7%
+							totalAmountPair += quantity
+							accountBalance = accountBalance - (quantity * currentPrice)
+							buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+						}
+					}*/
+
+					/*if(atr > 0.012 && atr < 0.02) {
+						if(emaShort > emaLong) {
+							trades += new BotTrade(currentPrice, quantity, 0.02) // -7%
+							totalAmountPair += quantity
+							accountBalance = accountBalance - (quantity * currentPrice)
+							buys += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+						}
+					}*/
 					/*if(rsi >= 70 && smaStochastic < stochastic) {
 						trades += new BotTrade(currentPrice, quantity, 0.02) // -7%
 						totalAmountPair += quantity
@@ -267,24 +312,26 @@ class BotStrategy(botChart: BotChart) {
 				accountBalance += trade.getQuantity * currentPrice
 				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
 			}*/
-			if(currentPrice < emaLong && currentPrice < emaShort) {
+			/*if(currentPrice < emaShort) {
 				trade.close(currentPrice)
 				totalAmountPair -= trade.getQuantity
 				accountBalance += trade.getQuantity * currentPrice
 				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
-			}
+			}*/
 			/*if(currentPrice < tema) {
 				trade.close(currentPrice)
 				totalAmountPair -= trade.getQuantity
 				accountBalance += trade.getQuantity * currentPrice
 				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
 			}*/
-			/*if(currentPrice > longMovingAverage) {
-				trade.close(currentPrice)
-				totalAmountPair -= trade.getQuantity
-				accountBalance += trade.getQuantity * currentPrice
-				sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
-			}*/
+			if(volatilityRatio < 0.005) {
+				if(currentPrice > longMovingAverage) {
+					trade.close(currentPrice)
+					totalAmountPair -= trade.getQuantity
+					accountBalance += trade.getQuantity * currentPrice
+					sells += new DataPoint(currentDate, currentPrice.toString, "", "", "", "", "", "", "")
+				}
+			}
 			/*if(currentPrice > longMovingAverage) {
 				botChart.bittrexSell(trade.getQuantity, currentPrice).onComplete {
 		    		case Success(value) => {
