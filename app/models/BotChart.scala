@@ -21,8 +21,8 @@ class BotChart(config: Configuration, ws: WSClient, exchange: String, pair: Stri
 	//val startTime = 1493640000 // 2017-05-01 12:00:00
 	//val endTime = 1493726400 // 2017-05-02 12:00:00
 	val dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    val parsedStartDate = dateFormat.parse("2017-09-28 12:00:00");
-    val parsedEndDate = dateFormat.parse("2017-09-30 12:00:00");
+    val parsedStartDate = dateFormat.parse("2017-10-13 12:00:00");
+    val parsedEndDate = dateFormat.parse("2017-10-14 12:00:00");
     val calStartDate = Calendar.getInstance
     calStartDate.setTime(parsedStartDate)
     val calEndDate = Calendar.getInstance
